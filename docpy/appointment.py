@@ -14,13 +14,14 @@ class Appointment:
 
     def __init__(self, patient_name=None, date=None, from_time=None,
                  to_time=None, comment=None):
-        if not self._is_valid_DateTime(date, from_time, to_time):
-            raise ValueError("Invalid Date or Time of Appointment")
         self.patient_name = patient_name
         self.date = date
         self.from_time = from_time
         self.to_time = to_time
         self.comment = comment
+
+        if not self._is_valid_DateTime(date, from_time, to_time):
+            raise ValueError("Invalid Date or Time of Appointment")
 
     @property
     def patient_name(self):
@@ -90,6 +91,7 @@ class AppointmentManager:
             raise ValueError("Argument must be of type 'Appointment'")
         if not self._is_available(appt):
             raise ValueError("This date and time is already booked")
+
         params = {key.lstrip('_'): getattr(appt, key) for key in vars(appt)}
         params['user_id'] = 1  # TODO: Provide better implementation for UserID Logic
         reg.create_Appointment(params)
