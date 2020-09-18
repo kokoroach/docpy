@@ -11,23 +11,36 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite://'
 db = SQLAlchemy(app)
 
 
-class User(db.Model):
+class ModelMixin:
+
+    def to_dict(self, exclude=None):
+        if exclude is None:
+            exclude = []
+        elif not isinstance(exclude, list):
+            raise TypeError('Exclude must be list')
+        return {c.name: getattr(self, c.name) for c in self.__table__.columns if c.name not in exclude}
+
+
+class User(db.Model, ModelMixin):
+    id: int
+
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
     # email = db.Column(db.String(120), unique=True, nullable=False) # TODO
     created_date = db.Column(DateTime, default=datetime.utcnow())
 
     def __repr__(self):
-        return '<User %r>' % self.username
+        return '{}'.format(self.username)
 
 
-class Appointment(db.Model):
+class Appointment(db.Model, ModelMixin):
     id = db.Column(db.Integer, primary_key=True)
     patient_name = db.Column(db.String(80), nullable=False)
     date = db.Column(Date, nullable=False)
     from_time = db.Column(Time, nullable=False)
     to_time = db.Column(Time, nullable=False)
     comment = db.Column(db.String(100), nullable=False)
+    status = db.Column(db.Boolean, nullable=False, default=True)
     # created_on = db.Column(DateTime, default=datetime.datetime.utcnow, # TODO
     #                        nullable=False)
     # edited_on = db.Column(DateTime, nullable=False) # TODO
@@ -36,7 +49,10 @@ class Appointment(db.Model):
         db.Integer, db.ForeignKey('user.id'), nullable=False)
 
     def __repr__(self):
-        return '{} @ {} - {}'.format(self.date, self.from_time, self.to_time)
+        return '{} @ {}-{}'.format(self.date, self.from_time, self.to_time)
+
+    def to_dict(self):
+        return super(Appointment, self).to_dict(exclude=['status'])
 
 
 # ---------------------------------

@@ -12,8 +12,9 @@ def is_valid_time(check_time):
 
 class Appointment:
 
-    def __init__(self, patient_name=None, date=None, from_time=None,
-                 to_time=None, comment=None):
+    def __init__(self, id=None, patient_name=None, date=None, from_time=None,
+                 to_time=None, comment=None, **kwargs):
+        self.id = id
         self.patient_name = patient_name
         self.date = date
         self.from_time = from_time
@@ -86,44 +87,58 @@ class Appointment:
 
 class AppointmentManager:
 
-    def create_Appointment(self, appt):
-        if not isinstance(appt, Appointment):
-            raise ValueError("Argument must be of type 'Appointment'")
-        if not self._is_available(appt):
+    def __init__(self):
+        pass
+
+    def _make_appointment(self, params, resched=False):
+        appt = Appointment(**params)
+        if not self._is_available(appt, resched=resched):
             raise ValueError("This date and time is already booked")
+        return appt
 
-        params = {key.lstrip('_'): getattr(appt, key) for key in vars(appt)}
-        params['user_id'] = 1  # TODO: Provide better implementation for UserID Logic
-        reg.create_Appointment(params)
-
-    def edit_Appointment(appt):
-        pass
-
-    def delete_Appointment():
-        pass
-
-    def get_Appointments():
-        pass
-
-    def _is_available(self, appt):
-        for b_appt in reg.get_Appointments(appt.date):
-            if b_appt.from_time <= appt.from_time <= b_appt.from_time:
+    def _is_available(self, appt, resched=False):
+        for b_appt in reg.get_Appointments(date=appt.date):
+            if resched and appt.id == b_appt['id']:
+                continue
+            if b_appt['from_time'] <= appt.from_time <= b_appt['to_time']:
                 return False
-            if b_appt.from_time <= appt.to_time <= b_appt.from_time:
+            if b_appt['from_time'] <= appt.to_time <= b_appt['to_time']:
                 return False
         return True
 
+    def create_Appointment(self, params, user_id):
+        appt = self._make_appointment(params)
+        params = {key.lstrip('_'): getattr(appt, key) for key in vars(appt)}
+        params['user_id'] = user_id
+        return reg.create_Appointment(params)
 
-def create_Users():
-    admin = User(username='admin')
-    guest = User(username='guest')
+    def update_Appointment(self, appt_id, params, user_id):
+        attrs = reg.get_Appointment_by_ID(appt_id)
+        if attrs['user_id'] != user_id:
+            raise Exception("Permission denied")
+        attrs.update(params)
+        self._make_appointment(attrs, resched=True)
+        return reg.update_Appointment(appt_id, params)
 
-    db.session.add(admin)
-    db.session.add(guest)
-    db.session.commit()
+    def delete_Appointment(self, appt_id, user_id):
+        params = {'status': False}
+        return self.update_Appointment(appt_id, params, user_id)
+
+    def get_Appointments_by_Range(self, date_from, date_to):
+        if date_from > date_to:
+            raise ValueError("Provide correct date range")
+        return reg.get_Appointments_by_Date_Range(date_from, date_to)
 
 
 if __name__ == '__main__':
+    def create_Users():
+        admin = User(username='admin')
+        guest = User(username='guest')
+
+        db.session.add(admin)
+        db.session.add(guest)
+        db.session.commit()
+        
     # TODO:  # Assert db creation
     from db_model import db, User
     db.create_all()
@@ -135,19 +150,37 @@ if __name__ == '__main__':
     create_Users()
 
     # New Appointment
-    appt_1 = Appointment(
-        patient_name='Patient 1',
-        date=date_today,
-        from_time=from_time,
-        to_time=to_time,
-        comment='asd'
-    )
+    params = {
+        "patient_name": "Patient 1",
+        "date": date_today,
+        "from_time": from_time,
+        "to_time": to_time,
+        "comment": "Comment Here"
+    }
+
+    user_id = 1
 
     # Creation of Appointment
     manager = AppointmentManager()
-    manager.create_Appointment(appt_1)
-    manager.create_Appointment(appt_1)
+    appt_id = manager.create_Appointment(params, user_id)
 
-    # Edit of Appointment
-    appt_id = 1
-    # manager.create_Appointment(appt_id, updates)
+    # # Edit of Appointment
+    updates = {
+        "from_time": time(9, 0),
+    }
+
+    # print('UPDATE')
+    # manager.update_Appointment(appt_id, updates, user_id)
+    # r = reg.get_Appointment_by_ID(appt_id)
+    # print(r)
+
+    # print('DELETE')
+    # manager.delete_Appointment(appt_id, user_id)
+    # r = reg.get_Appointment_by_ID(appt_id)
+    # print(r)
+
+    # print('GET')
+    # date_from = date_today
+    # date_to = date(2020, 9, 19)
+    # r = manager.get_Appointments_by_Range(date_from, date_to)
+    # print(r)
