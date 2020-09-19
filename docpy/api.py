@@ -8,6 +8,8 @@ from flask import Flask
 from flask_restplus import Api, Resource, fields
 from werkzeug.middleware.proxy_fix import ProxyFix
 
+from manager import UserManager, AppointmentManager
+
 
 # -------------------------
 # API DESCRIPTION
@@ -15,10 +17,11 @@ app = Flask(__name__)
 app.wsgi_app = ProxyFix(app.wsgi_app)
 api = Api(
     app, version="1.0",
-    title="DocPY APIs",
+    title="DocPy APIs",
     description="API for Doctor's Appointment",
 )
 
+# TODO: register /api/ blueprint
 
 # -------------------------
 # NAMESPACES
@@ -44,19 +47,30 @@ appt_m = api.model(
     }
 )
 
+# -------------------------
+# Manager Mixin
+
+class UserMixin:
+    manager = UserManager()
+
+
+class AppointmentMixin:
+    manager = AppointmentManager()
+
 
 # -------------------------
 # API PROPER
-
-
 # A. USER
 
 @user_ns.route("/")
-class User(Resource):
+class User(Resource, UserMixin):
 
     @api.expect(user_m, validate=True)
     def post(self):
+        data = user_ns.payload
         try:
+            resp = self.manager.create_User(data)
+            print(resp) 
             return {
                 "status": "New User added"
             }
@@ -65,7 +79,7 @@ class User(Resource):
 
 
 @user_ns.route("/<int:id>")
-class UserRecord(Resource):
+class UserRecord(Resource, UserMixin):
 
     def get(self, id):
         try:
@@ -79,7 +93,7 @@ class UserRecord(Resource):
 # A. APPOINTMENT
 
 @appt_ns.route("/")
-class Appointment(Resource):
+class Appointment(Resource, AppointmentMixin):
 
     @api.expect(appt_m, validate=True)
     def post(self):
@@ -102,7 +116,7 @@ class Appointment(Resource):
 
 
 @appt_ns.route("/<int:id>")
-class AppointmentRecord(Resource):
+class AppointmentRecord(Resource, AppointmentMixin):
 
     def update(self, id):
         try:
@@ -120,6 +134,3 @@ class AppointmentRecord(Resource):
         except Exception as e:
             user_ns.abort(400, e.__doc__, statusCode="400")
 
-
-if __name__ == '__main__':
-    app.run(debug=True)

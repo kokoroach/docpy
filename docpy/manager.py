@@ -1,6 +1,10 @@
-import registrar as reg
+import utils
 
-from datetime import date, time
+from db import session
+from registrar import Registrar
+
+
+reg = Registrar(session)
 
 
 # TODO: move to utilities
@@ -40,7 +44,7 @@ class Appointment:
 
     @date.setter
     def date(self, d):
-        if date.today() > d:
+        if utils.get_now().date() > d:
             raise Exception("Date cannot be in the Past")
         self._date = d
 
@@ -82,6 +86,9 @@ class Appointment:
         # That time from < to
         if from_time >= to_time:
             return False
+        # That from_time > now
+        if from_time > utils.get_now().time()
+            return False
         return True
 
 
@@ -108,16 +115,16 @@ class AppointmentManager:
 
     def create_Appointment(self, params, user_id):
         appt = self._make_appointment(params)
-        params = {key.lstrip('_'): getattr(appt, key) for key in vars(appt)}
+        params = utils.get_attribs(vars(appt))
         params['user_id'] = user_id
         return reg.create_Appointment(params)
 
     def update_Appointment(self, appt_id, params, user_id):
-        attrs = reg.get_Appointment_by_ID(appt_id)
-        if attrs['user_id'] != user_id:
+        appt_info = reg.get_Appointment_by_ID(appt_id)
+        if appt_info['user_id'] != user_id:
             raise Exception("Permission denied")
-        attrs.update(params)
-        self._make_appointment(attrs, resched=True)
+        appt_info.update(params)
+        self._make_appointment(appt_info, resched=True)
         return reg.update_Appointment(appt_id, params)
 
     def delete_Appointment(self, appt_id, user_id):
@@ -130,57 +137,32 @@ class AppointmentManager:
         return reg.get_Appointments_by_Date_Range(date_from, date_to)
 
 
-if __name__ == '__main__':
-    def create_Users():
-        admin = User(username='admin')
-        guest = User(username='guest')
+class User:
 
-        db.session.add(admin)
-        db.session.add(guest)
-        db.session.commit()
-        
-    # TODO:  # Assert db creation
-    from db_model import db, User
-    db.create_all()
+    def __init__(self, id=None, username=None, **kwargs):
+        self.id = id
+        self.username = username
 
-    date_today = date.today()
-    from_time = time(10, 0)
-    to_time = time(11, 1)
+    @property
+    def username(self):
+        return self._username
 
-    create_Users()
+    @username.setter
+    def username(self, n):
+        if not n:
+            raise Exception("Username cannot be empty")
+        self._username = n
 
-    # New Appointment
-    params = {
-        "patient_name": "Patient 1",
-        "date": date_today,
-        "from_time": from_time,
-        "to_time": to_time,
-        "comment": "Comment Here"
-    }
 
-    user_id = 1
+class UserManager:
 
-    # Creation of Appointment
-    manager = AppointmentManager()
-    appt_id = manager.create_Appointment(params, user_id)
+    def __init__(self):
+        pass
 
-    # # Edit of Appointment
-    updates = {
-        "from_time": time(9, 0),
-    }
+    def create_User(self, params):
+        user = User(**params)
+        params = utils.get_attribs(vars(user))
+        return reg.create_User(params)
 
-    # print('UPDATE')
-    # manager.update_Appointment(appt_id, updates, user_id)
-    # r = reg.get_Appointment_by_ID(appt_id)
-    # print(r)
-
-    # print('DELETE')
-    # manager.delete_Appointment(appt_id, user_id)
-    # r = reg.get_Appointment_by_ID(appt_id)
-    # print(r)
-
-    # print('GET')
-    # date_from = date_today
-    # date_to = date(2020, 9, 19)
-    # r = manager.get_Appointments_by_Range(date_from, date_to)
-    # print(r)
+    def get_User(self, username):
+        return reg.get_User(username)
