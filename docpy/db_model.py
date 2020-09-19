@@ -1,4 +1,4 @@
-from datetime import datetime, date, time
+from datetime import datetime, date, time, timezone
 from sqlalchemy.schema import ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import DateTime, Date, Time, String, Integer, Boolean, Column
@@ -23,7 +23,7 @@ class User(Base, ModelMixin):
     id = Column(Integer, primary_key=True)
     username = Column(String(80), unique=True, nullable=False)
     # email = Column(String(120), unique=True, nullable=False) # TODO
-    created_date = Column(DateTime, default=datetime.utcnow())
+    created_date = Column(DateTime, default=datetime.now())
 
     def __repr__(self):
         return '{}'.format(self.username)

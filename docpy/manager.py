@@ -1,6 +1,6 @@
 import utils
-
 from db import session
+from datetime import date as Date, time as Time
 from registrar import Registrar
 
 
@@ -9,16 +9,24 @@ reg = Registrar(session)
 
 # TODO: move to utilities
 def is_valid_time(check_time):
-    start_time = time(9)  # 9 AM
-    end_time = time(17)  # 5 PM
+    start_time = Time(9)  # 9 AM
+    end_time = Time(17)  # 5 PM
     return start_time <= check_time <= end_time
 
 
 class Appointment:
 
     def __init__(self, id=None, patient_name=None, date=None, from_time=None,
-                 to_time=None, comment=None, **kwargs):
+                 to_time=None, comment=None, user_id=None, **kwargs):
+        if isinstance(date, str):
+            date = utils.date_from_str(date)
+        if isinstance(from_time, str):
+            from_time = utils.time_from_str(from_time)
+        if isinstance(to_time, str):
+            to_time = utils.time_from_str(to_time)
+
         self.id = id
+        self.user_id = user_id
         self.patient_name = patient_name
         self.date = date
         self.from_time = from_time
@@ -87,7 +95,7 @@ class Appointment:
         if from_time >= to_time:
             return False
         # That from_time > now
-        if from_time > utils.get_now().time()
+        if from_time > utils.get_now().time():
             return False
         return True
 
@@ -113,11 +121,16 @@ class AppointmentManager:
                 return False
         return True
 
-    def create_Appointment(self, params, user_id):
+    def create_Appointment(self, params):
         appt = self._make_appointment(params)
+        _user = reg.get_User_by_ID(params['user_id'])
+        if not _user or params['user_id'] != _user['id']:
+            raise Exception("Invalid User")
         params = utils.get_attribs(vars(appt))
-        params['user_id'] = user_id
-        return reg.create_Appointment(params)
+        id = reg.create_Appointment(params)
+        if not id:
+            raise ValueError("Payload input error")
+        return id
 
     def update_Appointment(self, appt_id, params, user_id):
         appt_info = reg.get_Appointment_by_ID(appt_id)
@@ -160,9 +173,25 @@ class UserManager:
         pass
 
     def create_User(self, params):
+        username = params['username']
+        self._check_if_exists(username)
+
         user = User(**params)
         params = utils.get_attribs(vars(user))
         return reg.create_User(params)
 
+    def get_User_by_ID(self, id):
+        return reg.get_User_by_ID(id)
+
     def get_User(self, username):
         return reg.get_User(username)
+
+    def _check_if_exists(self, username):
+        user = self.get_User(username)
+        if user:
+            raise ValueError("Username already taken")
+
+if __name__ == "__main__":
+    manager = UserManager()
+    data = {'username': 'asd'}
+    manager.create_User(data)

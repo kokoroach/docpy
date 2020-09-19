@@ -1,22 +1,29 @@
+import json
+from os import urandom
+from docpy import __version__ as version
+
 # exception raise from flask_restplus
 try:
     import werkzeug
     werkzeug.cached_property
 except AttributeError:
     werkzeug.cached_property = werkzeug.utils.cached_property
-from flask import Flask
+from flask import Flask, session as fsession
+from sys import exc_info
 from flask_restplus import Api, Resource, fields
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 from manager import UserManager, AppointmentManager
+from utils import serialize
 
 
 # -------------------------
 # API DESCRIPTION
 app = Flask(__name__)
+app.secret_key = urandom(24)
 app.wsgi_app = ProxyFix(app.wsgi_app)
 api = Api(
-    app, version="1.0",
+    app, version=version,
     title="DocPy APIs",
     description="API for Doctor's Appointment",
 )
@@ -69,25 +76,27 @@ class User(Resource, UserMixin):
     def post(self):
         data = user_ns.payload
         try:
-            resp = self.manager.create_User(data)
-            print(resp) 
-            return {
-                "status": "New User added"
-            }
+            user_id = self.manager.create_User(data)
+            data.update({'id': user_id})
+            return data
         except Exception as e:
-            user_ns.abort(400, e.__doc__, statusCode="400")
+            err = exc_info()[1]
+            user_ns.abort(400, status="400", error=str(err))
 
 
 @user_ns.route("/<int:id>")
 class UserRecord(Resource, UserMixin):
 
+    # TODO: Security risk
     def get(self, id):
+        data = user_ns.payload
         try:
-            return {
-                "A": f"Get User: {id}"
-            }
+            user = self.manager.get_User_by_ID(id)
+            resp = json.dumps(user, default=serialize)
+            return json.loads(resp)
         except Exception as e:
-            user_ns.abort(400, e.__doc__, statusCode="400")
+            err = exc_info()[1]
+            user_ns.abort(400, status="400", error=str(err))
 
 
 # A. APPOINTMENT
@@ -97,14 +106,17 @@ class Appointment(Resource, AppointmentMixin):
 
     @api.expect(appt_m, validate=True)
     def post(self):
+        data = appt_ns.payload
         try:
-            return {
-                "status": "New Appointment added"
-            }
+            appt_id = self.manager.create_Appointment(data)
+            data.update({'id': appt_id})
+            return data
         except Exception as e:
-            user_ns.abort(400, e.__doc__, statusCode="400")
+            err = exc_info()[1]
+            user_ns.abort(400, status="400", error=str(err))
 
     def get(self):
+        data = appt_ns.payload
         try:
             # TODO Parsing Here
             return {
@@ -119,10 +131,11 @@ class Appointment(Resource, AppointmentMixin):
 class AppointmentRecord(Resource, AppointmentMixin):
 
     def update(self, id):
+        data = appt_ns.payload
         try:
-            return {
-                "status": "GET APPOINTMENT BY ID"
-            }
+            appt_id = self.manager.create_Appointment(data)
+            data.update({'id': appt_id})
+            return {'satus': 'True'}
         except Exception as e:
             user_ns.abort(400, e.__doc__, statusCode="400")
 
@@ -134,3 +147,12 @@ class AppointmentRecord(Resource, AppointmentMixin):
         except Exception as e:
             user_ns.abort(400, e.__doc__, statusCode="400")
 
+
+# UTILITY endpoints
+# @app.route('/login/<string:username>', methods=['GET'])
+# def login(username):
+#     manager = UserManager()
+#     r = manager.get_User(username)
+#     print(r)
+#     fsession['CURRENT_USER_ID'] = username
+#     return {"status": "Login Success"}
