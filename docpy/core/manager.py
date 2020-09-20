@@ -1,7 +1,8 @@
-import utils
-from db import session
+from core import utils
+from core.db import session
+from core.registrar import Registrar
+
 from datetime import date as Date, time as Time
-from registrar import Registrar
 
 
 reg = Registrar(session)
@@ -12,6 +13,30 @@ def is_valid_time(check_time):
     start_time = Time(9)  # 9 AM
     end_time = Time(17)  # 5 PM
     return start_time <= check_time <= end_time
+
+
+# method helpers
+def validate_user(func):
+    def func_wrapper(self, *args, **kwargs):
+        # TODO: Consider dynamic unpacking
+        user_id = args[0]['user_id']
+        _user = reg.get_User_by_ID(user_id)
+        if not _user:
+            raise Exception("Invalid User")
+        return func(self, *args, **kwargs)
+    return func_wrapper
+
+
+def validate_appt_user(func):
+    def func_wrapper(self, *args, **kwargs):
+        # TODO: Consider dynamic unpacking
+        appt_id = args[0]
+        user_id = args[1]['user_id']
+        appt_info = reg.get_Appointment_by_ID(appt_id)
+        if appt_info['user_id'] != user_id:
+            raise Exception("Permission denied")
+        return func(self, *args, appt_info=appt_info, **kwargs)
+    return func_wrapper
 
 
 class Appointment:
@@ -33,8 +58,8 @@ class Appointment:
         self.to_time = to_time
         self.comment = comment
 
-        if not self._is_valid_DateTime(date, from_time, to_time):
-            raise ValueError("Invalid Date or Time of Appointment")
+        self._validate_DateTime(date, from_time, to_time)
+
 
     @property
     def patient_name(self):
@@ -87,16 +112,17 @@ class Appointment:
         self._comment = c
 
     @staticmethod
-    def _is_valid_DateTime(date, from_time, to_time):
+    def _validate_DateTime(date, from_time, to_time):
         # That date is not Sunday
         if date.weekday() == 6:
-            return False
+            raise ValueError("Date cannot be Sunday")
         # That time from < to
         if from_time >= to_time:
-            return False
-        # That from_time > now
-        if from_time > utils.get_now().time():
-            return False
+            raise ValueError("Invalid time range")
+        # That today and now > from_time
+        if utils.get_now().date() == date and \
+            from_time > utils.get_now().time():
+            raise ValueError("Time is already in past")
         return True
 
 
@@ -121,33 +147,47 @@ class AppointmentManager:
                 return False
         return True
 
+    @validate_user
     def create_Appointment(self, params):
         appt = self._make_appointment(params)
-        _user = reg.get_User_by_ID(params['user_id'])
-        if not _user or params['user_id'] != _user['id']:
-            raise Exception("Invalid User")
         params = utils.get_attribs(vars(appt))
         id = reg.create_Appointment(params)
         if not id:
             raise ValueError("Payload input error")
         return id
 
-    def update_Appointment(self, appt_id, params, user_id):
-        appt_info = reg.get_Appointment_by_ID(appt_id)
-        if appt_info['user_id'] != user_id:
-            raise Exception("Permission denied")
+    @validate_appt_user
+    def update_Appointment(self, appt_id, params, **kwargs):
+        appt_info = kwargs.get('appt_info')
         appt_info.update(params)
+
         self._make_appointment(appt_info, resched=True)
-        return reg.update_Appointment(appt_id, params)
+
+        params = utils.deserialize(params)
+        if not reg.update_Appointment(appt_id, params):
+            raise Exception("DB Update Failed")
+        return appt_info
 
     def delete_Appointment(self, appt_id, user_id):
-        params = {'status': False}
-        return self.update_Appointment(appt_id, params, user_id)
+        params = {
+            'status': False,
+            'user_id': user_id}
+        return self.update_Appointment(appt_id, params)
 
     def get_Appointments_by_Range(self, date_from, date_to):
         if date_from > date_to:
             raise ValueError("Provide correct date range")
         return reg.get_Appointments_by_Date_Range(date_from, date_to)
+
+
+def is_new_user(func):
+    def func_wrapper(self, *args, **kwargs):
+        username = args[0]['username']
+        user = self.get_User(username)
+        if user:
+            raise ValueError("Username already taken")
+        return func(self, *args, **kwargs)
+    return func_wrapper
 
 
 class User:
@@ -172,10 +212,8 @@ class UserManager:
     def __init__(self):
         pass
 
+    @is_new_user
     def create_User(self, params):
-        username = params['username']
-        self._check_if_exists(username)
-
         user = User(**params)
         params = utils.get_attribs(vars(user))
         return reg.create_User(params)
@@ -186,10 +224,6 @@ class UserManager:
     def get_User(self, username):
         return reg.get_User(username)
 
-    def _check_if_exists(self, username):
-        user = self.get_User(username)
-        if user:
-            raise ValueError("Username already taken")
 
 if __name__ == "__main__":
     manager = UserManager()

@@ -1,7 +1,9 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import create_engine
 from sqlalchemy.pool import StaticPool
-from db_model import Base
+
+from core.db_model import Base
+
 
 # In-Memory Config
 engine = create_engine(

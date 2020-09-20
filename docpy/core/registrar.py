@@ -1,5 +1,5 @@
 from sqlalchemy import and_
-from db_model import User, Appointment
+from core.db_model import User, Appointment
 
 
 class Registrar:

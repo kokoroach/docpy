@@ -30,3 +30,12 @@ def serialize(obj):
     if isinstance(obj, (datetime, date, time)):
         return obj.isoformat()
     raise TypeError ("Type %s not serializable" % type(obj))
+
+def deserialize(dict):
+    # NOTE: Only 1-level dict* (not nested)
+    for k in dict:
+        if 'date' in k:
+            dict[k] = date_from_str(dict[k])
+        elif 'time' in k:
+            dict[k] = time_from_str(dict[k])
+    return dict
