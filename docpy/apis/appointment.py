@@ -45,6 +45,7 @@ class Appointment(Resource):
         'from': {'description': 'Date in HH:MM:SS', 'required': 'True'},
         'to': {'description': 'Date in HH:MM:SS', 'required': 'True'}
     }
+
     @api.doc(params=get_params)
     def get(self):
         try:

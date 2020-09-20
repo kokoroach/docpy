@@ -2,7 +2,7 @@ from core import utils
 from core.db import session
 from core.registrar import Registrar
 
-from datetime import time as Time, date as Date
+from datetime import time as Time
 
 
 reg = Registrar(session)

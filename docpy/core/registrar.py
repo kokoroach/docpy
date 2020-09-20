@@ -62,7 +62,6 @@ class Registrar:
             print('DB Exception: ', err)
         return resp
 
-
     def update_Appointment(self, id, params):
         status = True
         try:
