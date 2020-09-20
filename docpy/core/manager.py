@@ -2,7 +2,7 @@ from core import utils
 from core.db import session
 from core.registrar import Registrar
 
-from datetime import time as Time
+from datetime import time as Time, date as Date
 
 
 reg = Registrar(session)
@@ -174,8 +174,14 @@ class AppointmentManager:
         return self.update_Appointment(appt_id, params)
 
     def get_Appointments_by_Range(self, date_from, date_to):
+        date_from = utils.date_from_str(date_from)
+        date_to = utils.date_from_str(date_to)
+
         if date_from > date_to:
             raise ValueError("Provide correct date range")
+
+        if date_from == date_to:
+            return reg.get_Appointments_by_Date(date_from)
         return reg.get_Appointments_by_Date_Range(date_from, date_to)
 
 

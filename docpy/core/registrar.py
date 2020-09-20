@@ -51,6 +51,18 @@ class Registrar:
             print('DB Exception: ', err)
         return resp
 
+    def get_Appointments_by_Date(self, date):
+        resp = []
+        try:
+            appts = self.session.query(Appointment).filter(
+                    Appointment.date == date).all()
+            if appts:
+                resp = [i.to_dict() for i in appts]
+        except Exception as err:
+            print('DB Exception: ', err)
+        return resp
+
+
     def update_Appointment(self, id, params):
         status = True
         try:

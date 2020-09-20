@@ -3,7 +3,7 @@ import json
 from sys import exc_info
 from core.utils import serialize
 from core.manager import AppointmentManager
-from flask_restplus import Namespace, Resource, fields
+from flask_restplus import Namespace, Resource, fields, reqparse
 
 
 api = Namespace('appointments', description='Manage Appointments')
@@ -41,22 +41,25 @@ class Appointment(Resource):
             err = exc_info()[1]
             api.abort(400, status="400", error=str(err))
 
-    # TODO Simplify
-    @api.param('from', description='From Date', required=True)
-    @api.param('to', description='To Date', required=True)
-    @api.doc(params={"id": "An ID", "description": "My resource"})
+    get_params = {
+        'from': {'description': 'Date in HH:MM:SS', 'required': 'True'},
+        'to': {'description': 'Date in HH:MM:SS', 'required': 'True'}
+    }
+    @api.doc(params=get_params)
     def get(self):
-        data = api.payload
-        print(data)
         try:
-            # TODO Parsing Here
-            # TODO Mask response. only date and time range
-            return {
-                "status": "GET Appointment by RANGE"
-            }
+            parser = reqparse.RequestParser()
+            parser.add_argument('from', type=str, required=True)
+            parser.add_argument('to', type=str, required=True)
+            args = parser.parse_args()
+
+            appts = manager.get_Appointments_by_Range(args['from'], args['to'])
+            resp = json.dumps(appts, default=serialize)
+            resp = json.loads(resp)
+            return {"appointments": resp}
         except Exception:
             err = exc_info()[1]
-            user_ns.abort(400, status="400", error=str(err))
+            api.abort(400, status="400", error=str(err))
 
 
 @api.route("/<int:id>")
