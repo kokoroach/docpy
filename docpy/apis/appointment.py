@@ -6,7 +6,7 @@ from core.manager import AppointmentManager
 from flask_restplus import Namespace, Resource, fields, reqparse
 
 
-api = Namespace('appointments', description='Manage Appointments')
+api = Namespace('appointment', description='Manage Appointments')
 
 appt_m = api.model(
     'Apppointment Model', {
