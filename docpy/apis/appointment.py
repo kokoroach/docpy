@@ -37,22 +37,24 @@ class Appointment(Resource):
             appt_id = manager.create_Appointment(data)
             data.update({'id': appt_id})
             return data
-        except Exception as e:
+        except Exception:
             err = exc_info()[1]
-            user_ns.abort(400, status="400", error=str(err))
+            api.abort(400, status="400", error=str(err))
 
     # TODO Simplify
     @api.param('from', description='From Date', required=True)
     @api.param('to', description='To Date', required=True)
+    @api.doc(params={"id": "An ID", "description": "My resource"})
     def get(self):
         data = api.payload
+        print(data)
         try:
             # TODO Parsing Here
             # TODO Mask response. only date and time range
             return {
                 "status": "GET Appointment by RANGE"
             }
-        except Exception as e:
+        except Exception:
             err = exc_info()[1]
             user_ns.abort(400, status="400", error=str(err))
 
@@ -67,7 +69,7 @@ class AppointmentRecord(Resource):
             appt_info = manager.update_Appointment(id, data)
             resp = json.dumps(appt_info, default=serialize)
             return json.loads(resp)
-        except Exception as e:
+        except Exception:
             err = exc_info()[1]
             api.abort(400, status="400", error=str(err))
 
@@ -79,6 +81,6 @@ class AppointmentRecord(Resource):
             status = manager.delete_Appointment(id, user_id)
             if status:
                 return {'status': 'success'}
-        except Exception as e:
+        except Exception:
             err = exc_info()[1]
             api.abort(400, status="400", error=str(err))

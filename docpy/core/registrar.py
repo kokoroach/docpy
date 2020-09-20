@@ -20,7 +20,8 @@ class Registrar:
     def get_Appointment_by_ID(self, id):
         resp = {}
         try:
-            appt = self.session.query(Appointment).filter_by(status=True, id=id).first()
+            appt = self.session.query(Appointment)\
+                .filter_by(status=True, id=id).first()
             if appt:
                 resp = appt.to_dict()
         except Exception as err:
@@ -30,7 +31,8 @@ class Registrar:
     def get_Appointments(self, **params):
         resp = []
         try:
-            appts = self.session.query(Appointment).filter_by(status=True, **params).all()
+            appts = self.session.query(Appointment)\
+                .filter_by(status=True, **params).all()
             if appts:
                 resp = [i.to_dict() for i in appts]
         except Exception as err:
@@ -41,37 +43,35 @@ class Registrar:
         resp = []
         try:
             appts = self.session.query(Appointment).filter(
-                and_(Appointment.date >= date_from,
-                    Appointment.date <= date_to)).all()
+                    and_(Appointment.date >= date_from,
+                         Appointment.date <= date_to)).all()
             if appts:
                 resp = [i.to_dict() for i in appts]
         except Exception as err:
             print('DB Exception: ', err)
         return resp
 
-
     def update_Appointment(self, id, params):
         status = True
-        try: 
-            self.session.query(Appointment).filter_by(id=id, status=True).update(params)
+        try:
+            self.session.query(Appointment)\
+                .filter_by(id=id, status=True).update(params)
             self.session.commit()
         except Exception as err:
             print('DB Exception: ', err)
             status = False
         return status
 
-
-    # NOTE: No true DELETE,
-    # updates status to False instead
-    # def delete_Appointment(self, id):
-    #     status = True
-    #     try:
-    #         Appointment.query.filter_by(id=id).delete()
-    #         self.session.commit()
-    #     except Exception as err:
-    #         print('DB Exception: ', err)
-    #         status = False
-    #     return status
+    # NOTE: No true DELETE
+    def delete_Appointment(self, id):
+        status = True
+        try:
+            Appointment.query.filter_by(id=id).delete()
+            self.session.commit()
+        except Exception as err:
+            print('DB Exception: ', err)
+            status = False
+        return status
 
     # User
     def create_User(self, params):
@@ -87,13 +87,14 @@ class Registrar:
     def get_User(self, username):
         resp = {}
         try:
-            user = self.session.query(User).filter_by(username=username).first()
+            user = self.session.query(User)\
+                .filter_by(username=username).first()
             if user:
                 resp = user.to_dict()
         except Exception as err:
             print('DB Exception: ', err)
         return resp
-    
+
     def get_User_by_ID(self, id):
         resp = {}
         try:

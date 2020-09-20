@@ -2,7 +2,7 @@ from core import utils
 from core.db import session
 from core.registrar import Registrar
 
-from datetime import date as Date, time as Time
+from datetime import time as Time
 
 
 reg = Registrar(session)
@@ -59,7 +59,6 @@ class Appointment:
         self.comment = comment
 
         self._validate_DateTime(date, from_time, to_time)
-
 
     @property
     def patient_name(self):
@@ -121,7 +120,7 @@ class Appointment:
             raise ValueError("Invalid time range")
         # That today and now > from_time
         if utils.get_now().date() == date and \
-            from_time > utils.get_now().time():
+           from_time > utils.get_now().time():
             raise ValueError("Time is already in past")
         return True
 

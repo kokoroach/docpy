@@ -1,4 +1,4 @@
-from datetime import datetime, date, time, timezone
+from datetime import datetime
 from sqlalchemy.schema import ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import DateTime, Date, Time, String, Integer, Boolean, Column
@@ -14,7 +14,8 @@ class ModelMixin:
             exclude = []
         elif not isinstance(exclude, list):
             raise TypeError('Exclude must be list')
-        return {c.name: getattr(self, c.name) for c in self.__table__.columns if c.name not in exclude}
+        return {c.name: getattr(self, c.name)
+                for c in self.__table__.columns if c.name not in exclude}
 
 
 class User(Base, ModelMixin):

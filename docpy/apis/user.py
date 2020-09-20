@@ -26,7 +26,7 @@ class User(Resource):
             user_id = manager.create_User(data)
             data.update({'id': user_id})
             return data
-        except Exception as e:
+        except Exception:
             err = exc_info()[1]
             api.abort(400, status="400", error=str(err))
 
@@ -36,11 +36,10 @@ class UserRecord(Resource):
 
     # TODO: Security risk
     def get(self, id):
-        data = api.payload
         try:
             user = manager.get_User_by_ID(id)
             resp = json.dumps(user, default=serialize)
             return json.loads(resp)
-        except Exception as e:
+        except Exception:
             err = exc_info()[1]
             api.abort(400, status="400", error=str(err))
